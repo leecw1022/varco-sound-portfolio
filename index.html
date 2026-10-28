@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>VARCO SOUND 제작 노트</title>
+<meta name="description" content="이채원 · VARCO SOUND로 게임 효과음과 배경 루프를 만들며 막힌 곳과 푼 방법">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one reading column with an editor-timeline motif — sections are "tracks", evidence sits in listenable clips */
+:root{
+  --bg:#F5F5F7; --surface:#FFFFFF; --ink:#111114; --muted:#6B6B73; --line:#E3E3E8;
+  --accent:#0071E3; --accent-soft:#E6F0FC; --warn:#C2410C;
+  --clip-a:#4792D9; --clip-b:#67C34B; --clip-c:#8F64ED; --clip-d:#E1A23A;
+  --sans:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111114; --surface:#1B1B20; --ink:#F2F2F5; --muted:#A0A0AA; --line:#2C2C33;
+  --accent:#3B95FF; --accent-soft:#16263B; --warn:#FB923C; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111114; --surface:#1B1B20; --ink:#F2F2F5; --muted:#A0A0AA; --line:#2C2C33;
+  --accent:#3B95FF; --accent-soft:#16263B; --warn:#FB923C; color-scheme:dark}
+*{box-sizing:border-box}
+html{color-scheme:light}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.7;margin:0}
+.wrap{max-width:980px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:48px 80px;display:flex;flex-direction:column;gap:72px}
+h1,h2,h3{text-wrap:balance;margin:0;line-height:1.3}
+h1{font-size:clamp(2rem,5vw,3.1rem);font-weight:700;letter-spacing:-.02em}
+h2{font-size:clamp(1.45rem,3vw,1.9rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.05rem;font-weight:600}
+p{margin:0;max-width:65ch}
+.dim{color:var(--muted)}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.eyebrow{font-family:var(--mono);font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+section{display:flex;flex-direction:column;gap:24px}
+.head{display:flex;flex-direction:column;gap:10px}
+.head p{color:var(--muted)}
+/* hero */
+.hero{display:flex;flex-direction:column;gap:20px}
+.hero .lead{font-size:1.15rem;color:var(--muted)}
+.byline{font-size:.95rem;color:var(--muted)}
+.byline b{color:var(--ink);font-weight:600}
+.lanes{display:grid;gap:6px;margin-top:8px}
+.lane{display:grid;grid-template-columns:110px 1fr;align-items:center;gap:12px;font-size:.85rem}
+.lane span{color:var(--muted);font-family:var(--mono);font-size:.75rem}
+.lane i{display:block;height:22px;border-radius:6px;opacity:.9}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.stat{background:var(--surface);border-radius:var(--r);padding:18px 20px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.stat b{font-family:var(--mono);font-size:clamp(1.6rem,4vw,2.3rem);font-weight:500;letter-spacing:-.02em}
+.stat span{font-size:.88rem;color:var(--muted)}
+/* generic */
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.card{background:var(--surface);border-radius:var(--r);padding:22px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.card ul{margin:0;padding-left:1.1em;display:flex;flex-direction:column;gap:6px}
+.fix{color:var(--accent);font-weight:600}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+figure img{width:100%;border-radius:var(--r);display:block}
+figcaption{font-size:.85rem;color:var(--muted)}
+.tablewrap{overflow-x:auto;background:var(--surface);border-radius:var(--r)}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:.93rem}
+th,td{text-align:left;padding:12px 16px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:500;color:var(--muted);font-size:.8rem}
+tr:last-child td{border-bottom:0}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.bad{color:var(--warn)}
+/* audio clip */
+.clip{background:var(--surface);border-radius:var(--r);padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.clip header{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.clip canvas{width:100%;height:72px;display:block}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+button.play{font:inherit;font-size:.88rem;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:7px 14px;cursor:pointer;display:inline-flex;gap:8px;align-items:center}
+button.play::before{content:"";width:0;height:0;border-left:8px solid currentColor;border-top:5px solid transparent;border-bottom:5px solid transparent}
+button.play.on{background:var(--accent);border-color:var(--accent);color:#fff}
+button.play.on::before{border:0;width:8px;height:10px;border-left:3px solid currentColor;border-right:3px solid currentColor}
+button.play:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.note{font-size:.85rem;color:var(--muted)}
+/* steps */
+ol.steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;counter-reset:s}
+ol.steps li{background:var(--surface);border-radius:var(--r);padding:16px 18px;display:flex;flex-direction:column;gap:4px;counter-increment:s}
+ol.steps li::before{content:counter(s,decimal-leading-zero);font-family:var(--mono);font-size:.75rem;color:var(--muted)}
+ol.steps li.last{background:var(--ink);color:var(--bg)}
+ol.steps li.last::before{color:var(--bg);opacity:.6}
+ol.steps li span{font-size:.88rem;opacity:.75}
+/* chart */
+.chart{background:var(--surface);border-radius:var(--r);padding:18px;display:flex;flex-direction:column;gap:10px}
+.chart svg{width:100%;height:auto;display:block}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:.85rem;color:var(--muted)}
+.legend i{display:inline-block;width:18px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px}
+.callout{border-left:0;background:var(--accent-soft);border-radius:var(--r);padding:18px 20px;display:flex;flex-direction:column;gap:6px}
+footer{font-size:.85rem;color:var(--muted);display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:24px}
+@media (max-width:640px){.stats,.grid2{grid-template-columns:1fr}.lane{grid-template-columns:80px 1fr}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+.case{background:var(--surface);border-radius:var(--r);padding:24px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.case .meta{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font-family:var(--mono);font-size:.75rem;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-variant-numeric:tabular-nums}
+.quotes{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.quotes li{background:var(--bg);border-radius:10px;padding:10px 14px;font-size:.93rem}
+.quotes li::before{content:"내 요청 ";font-family:var(--mono);font-size:.7rem;color:var(--muted);margin-right:6px}
+.split{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.split > div{display:flex;flex-direction:column;gap:4px;min-width:0}
+.label{font-size:.78rem;color:var(--muted);font-weight:500}
+ol.rules{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px;counter-reset:r}
+ol.rules li{background:var(--surface);border-radius:var(--r);padding:16px 20px;display:grid;grid-template-columns:2.2em 1fr;gap:4px 12px;counter-increment:r}
+ol.rules li::before{content:counter(r);font-family:var(--mono);color:var(--accent);font-size:1.1rem;grid-row:span 2}
+ol.rules li span{color:var(--muted);font-size:.9rem}
+@media (max-width:640px){.split{grid-template-columns:1fr}}
+</style>
+
+</head>
+<body>
+<main class="wrap">
+
+<header class="hero">
+  <span class="eyebrow">Sound making notes · VARCO SOUND</span>
+  <h1>VARCO SOUND로<br>게임 사운드를 만들며 막힌 곳과 푼 방법</h1>
+  <p class="lead">빅토리아풍 저택을 배경으로 한 미스터리 퍼즐 게임에 들어갈 효과음과 배경 루프를 VARCO SOUND로 만들었습니다. 원하는 소리가 나오지 않을 때 무엇이 원인이었고 어떻게 풀었는지를, 실제 생성 결과와 제 요청 기록으로 정리했습니다.</p>
+  <p class="byline"><b>이채원</b> · 2026.09 – 10 · 이 페이지의 소리는 모두 VARCO SOUND로 생성한 결과물입니다</p>
+  <div class="lanes" aria-hidden="true">
+    <div class="lane"><span>SFX</span><i style="background:var(--clip-a);width:62%"></i></div>
+    <div class="lane"><span>MUSIC MODE</span><i style="background:var(--clip-c);width:38%;margin-left:20%"></i></div>
+    <div class="lane"><span>AMBIENCE</span><i style="background:var(--clip-b);width:100%"></i></div>
+  </div>
+  <div class="stats">
+    <div class="stat"><b>136</b><span>VARCO 프로젝트</span></div>
+    <div class="stat"><b>919</b><span>생성한 소리 파일</span></div>
+    <div class="stat"><b>156</b><span>에이전트에 보낸 요청</span></div>
+  </div>
+</header>
+
+<section id="method">
+  <div class="head"><span class="eyebrow">01 · How I work</span><h2>길게 뽑고, 들리는 구간만 잘라 씁니다</h2>
+  <p>VARCO는 소리를 10초 안팎으로 만들어 줍니다. 그런데 소리의 시작과 끝이 안개처럼 흐릿하게 번지고, 쓸 만한 동작음은 그 사이 짧은 구간에 들어 있었습니다. 그래서 길게 생성한 뒤 에디터에서 필요한 구간만 남기는 방식으로 작업했습니다. 파란 영역이 실제로 쓴 부분입니다.</p></div>
+  <div class="grid2">
+    <div class="clip" data-key="stairs">
+      <header><h3>나무 계단 발소리</h3><span class="mono note">8.57s 중 0.48s 사용</span></header>
+      <canvas aria-label="계단 발소리 원본 파형과 사용 구간"></canvas>
+      <div class="btns"><button class="play" data-src="audio/stairs_raw.mp3">원본 전체</button><button class="play" data-src="audio/stairs_cut.mp3">사용 구간</button></div>
+    </div>
+    <div class="clip" data-key="door">
+      <header><h3>방문 닫기</h3><span class="mono note">2.77s 중 0.65s 사용</span></header>
+      <canvas aria-label="문 닫는 소리 원본 파형과 사용 구간"></canvas>
+      <div class="btns"><button class="play" data-src="audio/door_raw.mp3">원본 전체</button><button class="play" data-src="audio/door_cut.mp3">사용 구간</button></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card"><h3>입력에 따라 달라진 것</h3><ul>
+      <li>글로만 요청하면 하나의 명료한 소리보다 박자와 패턴이 불규칙한 소리가 자주 나왔습니다.</li>
+      <li>이미지를 함께 넣으면 요청한 소리 외에 그 장면의 공간음까지 만들어져, 트랙이 여러 개 생겼습니다.</li>
+      <li>이미지만 넣으면 가장 가까운 소리를 내주지만, VARCO가 익숙한 소리 쪽으로 자꾸 기울었습니다.</li>
+    </ul></div>
+    <div class="card"><h3>생성 후 손본 것</h3><ul>
+      <li>음량: 가장 작은 소리와 큰 소리 차이 <span class="mono">38.5dB</span> → 종류별 기준 음량으로 맞춤</li>
+      <li>경계: 소리 중간에서 시작하거나 끝나는 파일 9개 → 앞뒤 페이드</li>
+      <li>여백: 문 여는 소리는 실제 <span class="mono">0.95s</span> + 무음 <span class="mono">3.4s</span> → 쓸 길이로 트리밍</li>
+    </ul></div>
+  </div>
+</section>
+
+<section id="cases">
+  <div class="head"><span class="eyebrow">02 · Where I got stuck</span><h2>시간이 가장 많이 든 네 가지 소리</h2>
+  <p>요청 기록과 생성 파일을 다시 열어, 어디서 시간이 들었고 무엇이 해결의 열쇠였는지 정리했습니다. 회색 상자는 당시 제가 에이전트에게 보낸 요청에서 옮긴 것입니다(오타만 고침).</p></div>
+
+  <article class="case">
+    <div class="meta"><span class="chip">10.24 06:52 – 10:32</span><span class="chip">요청 19번</span><span class="chip">생성 파일 62개</span></div>
+    <h3>금속 누름판이 눌리는 소리</h3>
+    <ul class="quotes">
+      <li>저런 퓨처리즘 효과음 내가 원한다고 말하기전까지 빼</li>
+      <li>너가 생각하는 금속 누름판이 눌리는 소리는 도대체 뭐니?</li>
+      <li>지금은 그냥 손가락으로 눌러도되는 버튼 소리라서 내가 원하는방향성이랑 달라</li>
+    </ul>
+    <div class="split">
+      <div><span class="label">무엇이 문제였나</span><p>'누름판'이라는 물건 이름만으로는 크기, 무게, 길이가 전해지지 않았습니다. 그 빈칸을 VARCO는 미래적인 기계음이나 손가락 버튼 소리로 채웠고, 저는 발판 크기와 0.5~1초 길이를 뒤늦게 하나씩 덧붙였습니다.</p></div>
+      <div><span class="label">어떻게 풀었나</span><p>이틀 뒤 "맨홀 뚜껑이 닫히는 소리 정도"라고 누구나 아는 소리에 빗대자, 9분 만에 쓸 수 있는 소리가 나왔습니다. 물건 이름보다 같은 무게감의 익숙한 소리를 말하는 것이 훨씬 빨랐습니다.</p></div>
+    </div>
+    <div class="btns"><button class="play" data-src="audio/press_first.mp3">첫 생성 결과</button><button class="play" data-src="audio/manhole.mp3">맨홀 뚜껑에 빗댄 뒤</button></div>
+  </article>
+
+  <article class="case">
+    <div class="meta"><span class="chip">10.14 06:35 – 06:45</span><span class="chip">요청 7번</span><span class="chip">생성 파일 27개</span></div>
+    <h3>밸브에서 증기가 빠져나오는 소리</h3>
+    <ul class="quotes">
+      <li>기계음 다 빼주고 자연스러운 증기 소리만 남겨줘</li>
+      <li>매미냐? 왜자꾸 찌르르 거려 푸쉬이이이 소리 구현해달라구..</li>
+      <li>와 여름인줄 매미소리밖에안남 어떻게해야 너가 이해를 할까</li>
+    </ul>
+    <div class="split">
+      <div><span class="label">무엇이 문제였나</span><p>"기계음을 빼 달라"는 수정을 거듭할수록 소리가 증기에서 멀어져 매미 울음 같은 고음 잡음이 되었습니다. 빼 달라는 말은 무엇을 남길지 알려 주지 못했습니다.</p></div>
+      <div><span class="label">어떻게 풀었나</span><p>결국 쓴 소리는 수정 요청 전에, 제가 증기가 '치익' 분출하다 빠르게 잦아드는 모양을 구체적으로 적은 요청에서 나온 후보였습니다. 결과가 멀어지면 수정을 쌓기보다 앞선 후보로 돌아가는 것이 낫다는 걸 배웠습니다.</p></div>
+    </div>
+    <div class="btns"><button class="play" data-src="audio/steam_cicada.mp3">'기계음 빼 줘' 이후</button><button class="play" data-src="audio/steam_final.mp3">처음 요청에서 나온 후보 (사용)</button></div>
+  </article>
+
+  <article class="case">
+    <div class="meta"><span class="chip">10.26 05:56 – 06:07</span><span class="chip">요청 5번</span><span class="chip">생성 파일 21개</span></div>
+    <h3>UI 버튼에 마우스를 올릴 때 나는 짧은 금속음</h3>
+    <ul class="quotes">
+      <li>너무 울리는데 짧고 명료하게</li>
+      <li>지금도 너무 울려 쇠가 울리는소리를 다 차단해 그냥 녹음실에서 소리 나자마자 막히는 것처럼</li>
+    </ul>
+    <div class="split">
+      <div><span class="label">무엇이 문제였나</span><p>짧은 금속음을 요청해도 쇠가 길게 울리는 소리가 계속 붙었습니다. 여러 번 고쳐 요청하는 동안에도 울림은 줄지 않았습니다.</p></div>
+      <div><span class="label">어떻게 풀었나</span><p>최종으로 쓴 소리는 맨 처음 생성한 후보였습니다. 이후로는 첫 후보 세 개를 먼저 충분히 비교하고, 원하는 방향이 보이는 후보를 골라 그것만 다듬는 순서로 바꿨습니다.</p></div>
+    </div>
+    <div class="btns"><button class="play" data-src="audio/ui_ring.mp3">울림이 붙은 후보</button><button class="play" data-src="audio/ui_final.mp3">맨 처음 후보 (사용)</button></div>
+  </article>
+
+  <article class="case">
+    <div class="meta"><span class="chip">10.14 · 10.28</span><span class="chip">요청 11번</span><span class="chip">생성 파일 39개</span></div>
+    <h3>같은 피아노 음색으로 계이름만 바꾸기</h3>
+    <ul class="quotes">
+      <li>그럼 지금은 도부터 미까지만 가능해?</li>
+      <li>내가보낸 파일이랑 비교해봤을때 똑같아보여?</li>
+      <li>Please change only the note name to 'Do'.</li>
+    </ul>
+    <p class="dim">도레미를 차례로 치는 소리도, 같은 음형에서 계이름만 바꾸는 것도 되지 않았습니다. 피아노 단음 하나로 다시 시도한 결과를 주파수로 재 봤습니다.</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>요청</th><th>에이전트가 한 일</th><th>측정한 음</th></tr></thead>
+      <tbody>
+        <tr><td>G5 (784Hz) 피아노 단음</td><td>효과음 후보 3개</td><td class="num bad">F (349.9Hz)</td></tr>
+        <tr><td>"저 음향으로 도 만들어줘"</td><td>베리에이션 4개, "도로 변형했다"</td><td class="num bad">4개 모두 F4</td></tr>
+        <tr><td>"아직 다 파인데? 도로 만들어줘"</td><td>새로 3개</td><td class="num bad">G2 · G3 · B3</td></tr>
+        <tr><td>"Please change only the note name to 'Do'"</td><td>베리에이션 4개, "middle C로 낮췄다"</td><td class="num bad">4개 모두 F4</td></tr>
+        <tr><td>프롬프트에서 음만 C5로 바꿔 재생성</td><td>새로 3개</td><td class="num">C4(+23센트) 1개, 음색은 더 밝아짐</td></tr>
+      </tbody></table></div>
+    <div class="split">
+      <div><span class="label">무엇이 문제였나</span><p>베리에이션은 음높이를 옮기지 못하고, 새로 생성하면 음색이 다시 만들어졌습니다. 에이전트는 바꿨다고 답했지만 실제 음은 그대로였습니다.</p></div>
+      <div><span class="label">해결 방향</span><p>음색은 VARCO로 한 번만 만들고, 음높이는 Unity AudioSource의 pitch로 옮깁니다. 파에서 위의 도는 +7반음(pitch <span class="mono">1.498</span>), 아래 도는 −5반음(<span class="mono">0.749</span>)입니다.</p></div>
+    </div>
+    <div class="btns"><button class="play" data-src="audio/piano_F.mp3">원본 (파)</button><button class="play" data-src="audio/piano_var.mp3">'도로 바꾼' 베리에이션</button><button class="play" data-src="audio/piano_C.mp3">C5로 재생성 (C4)</button><button class="play" data-src="audio/piano_C1.mp3">C5로 재생성 (다른 후보)</button></div>
+  </article>
+
+  <p class="callout"><b>네 사례에서 보인 VARCO의 기본값</b><span>제 요청 기록에는 "퓨처리즘", "너무 울려", "베이스가 너무 묵직", "지이잉 거리는 전기 소리", "매미"가 반복됩니다. 설명이 비어 있으면 VARCO는 무겁고, 울리고, 기계적인 쪽으로 채웠습니다. 그래서 크기·무게·길이와 공간을 먼저 정해 주는 것이 가장 효과적이었습니다.</span></p>
+</section>
+
+<section id="loop">
+  <div class="head"><span class="eyebrow">03 · Ambience loop</span><h2>플레이 내내 도는 바람 소리는 효과음으로 조립했습니다</h2>
+  <p>음악 모드로는 어떤 프롬프트를 써도 곡이 전개되어 배경 루프를 만들 수 없었습니다. 효과음 모드로 바람을 여러 번 만들고, VARCO 에디터에서 이어 붙여 1분 루프를 완성했습니다.</p></div>
+  <ol class="steps">
+    <li><b>이미지와 함께 요청</b><span>저택 우풍 소리를 요청하자 트랙 여러 개가 생김</span></li>
+    <li><b>필요 없는 층 삭제</b><span>야외 풀벌레 등 요청 안 한 층 정리</span></li>
+    <li><b>페이드로 이어 붙이기</b><span>뚝뚝 끊기지 않게 배치</span></li>
+    <li><b>문제 발견</b><span>바람 종류가 둘뿐이고 높낮이가 커서 반복이 티 남</span></li>
+    <li><b>일정한 바람 재생성</b><span>"처음부터 끝까지 같은 크기" 프롬프트, 후보 3개 모두 사용</span></li>
+    <li><b>트랙을 나눠 불규칙하게 배치</b><span>한 트랙에서 겹치면 앞 클립이 잘려서</span></li>
+    <li class="last"><b>60초 → 0초 이음새</b><span>페이드 대신 바람이 이어지게</span></li>
+  </ol>
+  <figure><img src="img/editor.jpg" alt="VARCO SOUND 에디터에서 바람 클립을 여러 트랙에 나눠 배치한 타임라인"><figcaption>VARCO SOUND 에디터의 1분 루프. 한 트랙에서 클립이 겹치면 앞 클립이 잘리는 것(−34dB → −66dB)을 재생 음량으로 확인하고 트랙을 나눴습니다.</figcaption></figure>
+  <div class="chart">
+    <h3>이음새 앞뒤 6초 음량 (dB, 0.25초 단위)</h3>
+    <div class="legend"><span><i style="background:var(--muted)"></i>이전: 페이드아웃 · 페이드인</span><span><i style="background:var(--accent)"></i>최종: 바람이 이어지는 방식</span></div>
+    <svg id="seam" viewBox="0 0 720 300" role="img" aria-label="이전 방식은 이음새에서 −83dB까지 떨어지고 최종 방식은 −47dB 이상을 유지"></svg>
+    <p class="note">이음새의 가장 조용한 순간이 <span class="mono">−83dB → −47dB</span>로 올라가, 루프가 돌 때 바람이 꺼지지 않습니다. 마지막 샘플과 첫 샘플도 <span class="mono">−0.0155 → −0.0151</span>로 이어져 '틱' 소리가 없습니다.</p>
+  </div>
+  <div class="grid2">
+    <div class="clip"><header><h3>이음새 확인용 12초</h3><span class="mono note">끝 6초 + 처음 6초</span></header><p class="note">6초 지점이 60초 → 0초로 넘어가는 순간입니다.</p><div class="btns"><button class="play" data-src="audio/seam_12s.mp3">재생</button></div></div>
+    <div class="clip"><header><h3>최종 1분 루프</h3><span class="mono note">60s · 반복 재생</span></header><p class="note">루프라는 걸 알리지 않고 다른 사람에게 들려주며 이음새가 들리는지 확인하는 방식으로 검증합니다.</p><div class="btns"><button class="play" data-src="audio/wind_loop_60s.mp3" data-loop="1">반복 재생</button></div></div>
+  </div>
+</section>
+
+<section id="music">
+  <div class="head"><span class="eyebrow">04 · Music mode</span><h2>음악 모드는 세부 조정이 되지 않았습니다</h2>
+  <p>대기실 배경음악을 음악 모드로 26곡 만들고 측정했습니다. 분위기 단어만 바꾼 비교 생성으로, 프롬프트 탓인 문제와 모델의 습관인 문제를 나눴습니다.</p></div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>요청</th><th>결과</th><th>원인</th></tr></thead>
+    <tbody>
+      <tr><td>첼레스타 독주, 조용하게</td><td>요청하지 않은 베이스가 항상 들어감 (150Hz 아래 에너지 <span class="mono">24~52%</span>)</td><td>모델의 습관</td></tr>
+      <tr><td>반복되는 미니멀 루프</td><td>쿵짝 · 왈츠 반주, 도입 → 고점 → 마무리 전개</td><td>모델의 습관</td></tr>
+      <tr><td>길이 · 구조 · 음량 지정</td><td>반영 안 됨, 음량은 항상 −16~−20dB</td><td>모델의 습관</td></tr>
+      <tr><td>신비로운 분위기</td><td>집시 · 아라비아풍 음계, 꾸밈음</td><td>프롬프트 탓: 'D dorian' 지정으로 해결</td></tr>
+    </tbody></table></div>
+</section>
+
+<section id="rules">
+  <div class="head"><span class="eyebrow">05 · What I'd tell the next creator</span><h2>다시 만든다면 처음부터 이렇게 요청합니다</h2></div>
+  <ol class="rules">
+    <li><b>물건 이름 대신, 누구나 아는 비슷한 소리에 빗댄다</b><span>"금속 누름판"보다 "맨홀 뚜껑이 닫히는 소리"가 9분 만에 통했습니다.</span></li>
+    <li><b>크기 · 무게 · 길이를 숫자로 적는다</b><span>"발 두 개 크기", "0.5~1초", "1미터 높이에서 떨어지는"처럼 적어야 손가락 버튼 소리가 나오지 않습니다.</span></li>
+    <li><b>빼 달라고 하지 말고 남길 것을 적는다</b><span>"기계음 빼 줘"를 반복하자 매미 소리가 됐고, "경고음 없이"는 경고음으로 반영됐습니다.</span></li>
+    <li><b>결과가 멀어지면 수정을 쌓지 말고 앞선 후보로 돌아간다</b><span>증기와 UI 소리 모두 결국 수정 전 후보를 썼습니다.</span></li>
+    <li><b>길게 뽑아 자르고, 음높이는 생성 밖에서 맞춘다</b><span>명료한 구간만 잘라 쓰고, 계이름은 Unity pitch로 옮깁니다.</span></li>
+  </ol>
+  <div class="grid2">
+    <div class="card"><h3>VARCO에 바라는 기능</h3><ul><li>같은 트랙의 겹친 클립을 크로스페이드로 재생</li><li>음높이 조절과 루프 이음새 미리듣기</li><li>앰비언트용 '전개 없음' 옵션</li><li>에이전트가 바꿨다고 답하기 전에 결과를 확인하는 단계</li></ul></div>
+    <div class="card"><h3>사용자를 위해 만들고 싶은 콘텐츠</h3><ul><li>"앰비언트는 효과음 모드 + 에디터" 단계별 가이드</li><li>같은 요청의 전후 비교 카드 (물건 이름 → 익숙한 소리)</li><li>FAQ: "앰비언트를 요청했는데 왜 음악이 나와요?"</li></ul></div>
+  </div>
+</section>
+
+<footer>
+  <span>모든 소리는 VARCO SOUND로 생성했고, 편집은 VARCO 에디터에서 했습니다. 이 페이지의 짧은 효과음은 들어 보기 편하도록 음량만 맞췄습니다.</span>
+  <span>음량 · 주파수 측정과 요청 기록 정리는 AI(Claude)의 도움을 받았고, 문제를 귀로 찾고 방향을 정한 것은 제가 했습니다.</span>
+  <span>이채원 · 2026</span>
+</footer>
+</main>
+
+
+<script>
+(function(){
+  const ENV={"stairs": {"dur": 8.57, "cut": [2.428, 2.904], "env": [0.0, 0.007, 0.011, 0.011, 0.005, 0.035, 0.022, 0.007, 0.002, 0.002, 0.001, 0.001, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.051, 0.036, 0.017, 0.007, 0.009, 0.005, 0.003, 0.002, 0.002, 0.001, 0.001, 0.0, 0.0, 0.0, 0.0, 0.023, 0.022, 0.027, 0.008, 0.013, 0.004, 0.003, 0.002, 0.002, 0.001, 0.0, 0.0, 0.001, 0.001, 0.016, 0.03, 0.011, 0.053, 0.014, 0.007, 0.004, 0.002, 0.007, 0.044, 0.016, 0.009, 0.005, 0.004, 0.002, 0.002, 0.001, 0.001, 0.001, 0.064, 0.053, 0.049, 0.04, 0.015, 0.008, 0.004, 0.005, 0.006, 0.002, 0.001, 0.001, 0.001, 0.001, 0.028, 0.057, 0.019, 0.031, 0.022, 0.006, 0.003, 0.002, 0.004, 0.004, 0.002, 0.001, 0.006, 0.005, 0.002, 0.001, 0.0, 0.0, 0.0, 0.072, 0.035, 0.015, 0.036, 0.019, 0.005, 0.005, 0.007, 0.007, 0.005, 0.002, 0.001, 0.001, 0.003, 0.043, 0.036, 0.033, 0.02, 0.007, 0.003, 0.003, 0.002, 0.003, 0.009, 0.017, 0.007, 0.001, 0.001, 0.015, 0.019, 0.033, 0.035, 0.01, 0.006, 0.003, 0.002, 0.045, 0.022, 0.049, 0.03, 0.01, 0.004, 0.007, 0.01, 0.002, 0.002, 0.001, 0.001, 0.002, 0.031, 0.011, 0.057, 0.035, 0.016, 0.004, 0.002, 0.002, 0.004, 0.003, 0.002, 0.001, 0.007, 0.008, 0.004, 0.003, 0.002, 0.001, 0.001, 0.001, 0.001, 0.0, 0.0, 0.0, 0.032, 0.015, 0.041, 0.031, 0.006, 0.006, 0.006, 0.002, 0.001, 0.001, 0.0, 0.0, 0.0, 0.0, 0.0, 0.115, 0.109, 0.06, 0.026, 0.008, 0.007, 0.007, 0.004, 0.001, 0.001, 0.001, 0.001, 0.0, 0.001, 0.116, 0.028, 0.083, 0.018, 0.01, 0.005, 0.002, 0.001, 0.001, 0.0, 0.0, 0.018, 0.031, 0.036, 0.016, 0.068, 0.04, 0.024, 0.009, 0.004, 0.002, 0.001, 0.001, 0.0, 0.0, 0.0, 0.0, 0.017, 0.013, 0.005, 0.046, 0.029, 0.008, 0.005, 0.001]}, "door": {"dur": 2.77, "cut": [0.378, 1.024], "env": [0.002, 0.002, 0.001, 0.002, 0.002, 0.002, 0.002, 0.002, 0.002, 0.003, 0.003, 0.002, 0.005, 0.003, 0.003, 0.004, 0.003, 0.003, 0.003, 0.003, 0.004, 0.003, 0.005, 0.004, 0.004, 0.004, 0.003, 0.003, 0.003, 0.002, 0.002, 0.002, 0.003, 0.116, 0.529, 0.381, 0.326, 0.375, 0.282, 0.456, 0.417, 0.455, 0.333, 0.458, 0.685, 0.543, 0.437, 0.594, 0.466, 0.554, 0.588, 0.403, 0.213, 0.175, 0.166, 0.146, 0.137, 0.169, 0.245, 0.194, 0.108, 0.051, 0.15, 0.114, 0.109, 0.08, 0.074, 0.037, 0.03, 0.041, 0.051, 0.044, 0.039, 0.034, 0.032, 0.034, 0.027, 0.042, 0.052, 0.042, 0.024, 0.035, 0.036, 0.029, 0.018, 0.025, 0.036, 0.039, 0.029, 0.011, 0.008, 0.014, 0.016, 0.009, 0.012, 0.014, 0.021, 0.015, 0.01, 0.012, 0.012, 0.014, 0.007, 0.007, 0.01, 0.016, 0.017, 0.013, 0.014, 0.014, 0.009, 0.007, 0.012, 0.015, 0.011, 0.011, 0.012, 0.011, 0.005, 0.004, 0.008, 0.01, 0.01, 0.01, 0.008, 0.008, 0.007, 0.006, 0.009, 0.015, 0.014, 0.007, 0.007, 0.007, 0.007, 0.007, 0.006, 0.005, 0.004, 0.003, 0.007, 0.009, 0.01, 0.007, 0.003, 0.005, 0.005, 0.003, 0.003, 0.005, 0.005, 0.004, 0.002, 0.003, 0.002, 0.006, 0.004, 0.004, 0.006, 0.004, 0.003, 0.003, 0.003, 0.006, 0.009, 0.007, 0.004, 0.002, 0.003, 0.005, 0.003, 0.003, 0.003, 0.003, 0.004, 0.003, 0.003, 0.003, 0.004, 0.004, 0.003, 0.002, 0.002, 0.002, 0.002, 0.002, 0.003, 0.003, 0.002, 0.003, 0.003, 0.003, 0.001, 0.002, 0.002, 0.003, 0.002, 0.001, 0.002, 0.002, 0.002, 0.001, 0.001, 0.002, 0.002, 0.002, 0.002, 0.002, 0.002, 0.001, 0.001, 0.002, 0.002, 0.002, 0.001, 0.001, 0.002, 0.002, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.002, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.002, 0.001, 0.001, 0.002, 0.002, 0.002, 0.001, 0.001, 0.001]}};
+  const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  function drawWave(clip,progress){
+    const k=clip.dataset.key,d=ENV[k],c=clip.querySelector('canvas');if(!d||!c)return;
+    const dpr=window.devicePixelRatio||1,w=c.clientWidth,h=c.clientHeight;c.width=w*dpr;c.height=h*dpr;
+    const g=c.getContext('2d');g.scale(dpr,dpr);g.clearRect(0,0,w,h);
+    const mx=Math.max(...d.env),n=d.env.length,bw=w/n;
+    const x0=d.cut[0]/d.dur*w,x1=d.cut[1]/d.dur*w;
+    g.fillStyle=css('--accent-soft');g.fillRect(x0,0,Math.max(2,x1-x0),h);
+    for(let i=0;i<n;i++){const v=d.env[i]/mx,x=i*bw,inCut=x>=x0-bw&&x<=x1;g.fillStyle=inCut?css('--accent'):css('--muted');g.globalAlpha=inCut?1:.45;const bh=Math.max(1,v*(h-8));g.fillRect(x,(h-bh)/2,Math.max(1,bw-1),bh)}
+    g.globalAlpha=1;
+    if(progress!=null){g.fillStyle=css('--ink');g.fillRect(progress*w,0,1.5,h)}
+  }
+  const clips=[...document.querySelectorAll('.clip[data-key]')];
+  const redraw=()=>clips.forEach(c=>drawWave(c));
+  redraw();addEventListener('resize',redraw);
+  matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',redraw);
+  new MutationObserver(redraw).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+  // audio
+  const audio=new Audio();let cur=null,raf=0;
+  function stop(){audio.pause();if(cur){cur.classList.remove('on');}cur=null;cancelAnimationFrame(raf);redraw()}
+  function tick(){const clip=cur&&cur.closest('.clip[data-key]');if(clip&&/raw/.test(cur.dataset.src)&&audio.duration){drawWave(clip,audio.currentTime/audio.duration)}raf=requestAnimationFrame(tick)}
+  document.querySelectorAll('button.play').forEach(b=>b.addEventListener('click',()=>{
+    if(cur===b){stop();return}
+    stop();cur=b;b.classList.add('on');audio.src=b.dataset.src;audio.loop=!!b.dataset.loop;
+    audio.play().catch(()=>stop());tick();
+  }));
+  audio.addEventListener('ended',()=>{if(!audio.loop)stop()});
+  // seam chart
+  const fade=[-38.7,-38.5,-38.8,-40.0,-41.3,-42.8,-43.1,-44.6,-47.4,-50.5,-53.9,-56.1,-57.1,-55.2,-58.1,-59.9,-61.6,-63.1,-62.3,-64.1,-66.9,-70.8,-74.1,-83.0,-71.6,-54.3,-46.7,-40.1,-41.7,-43.3,-41.9,-40.7,-39.6,-38.5,-40.0,-39.4,-40.5,-37.8,-40.8,-40.3,-39.8,-41.4,-41.3,-40.3,-43.1,-45.1,-42.2,-42.6];
+  const cont=[-38.7,-38.5,-38.8,-39.9,-41.2,-42.7,-43.0,-44.5,-46.7,-46.1,-42.1,-41.6,-38.6,-35.6,-36.5,-36.7,-37.7,-36.1,-36.1,-35.3,-38.0,-37.2,-37.4,-37.5,-37.1,-36.5,-36.9,-35.8,-36.7,-35.6,-36.4,-36.6,-36.7,-35.9,-37.1,-37.5,-38.7,-37.2,-40.1,-40.2,-39.8,-41.4,-41.2,-40.3,-43.1,-45.0,-42.2,-42.6];
+  const svg=document.getElementById('seam'),L=52,R=704,T=14,B=262;
+  const X=t=>L+(t+6)/12*(R-L),Y=v=>T+(-30-v)/60*(B-T);
+  let s='';
+  for(let v=-30;v>=-90;v-=10){s+=`<line x1="${L}" x2="${R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L-8}" y="${Y(v)+4}" text-anchor="end" font-size="12" fill="var(--muted)" font-family="IBM Plex Mono, monospace">${v}</text>`}
+  for(let t=-6;t<=6;t+=2){s+=`<text x="${X(t)}" y="${B+20}" text-anchor="middle" font-size="12" fill="var(--muted)" font-family="IBM Plex Mono, monospace">${t>0?'+':''}${t}s</text>`}
+  s+=`<line x1="${X(0)}" x2="${X(0)}" y1="${T}" y2="${B}" stroke="var(--muted)" stroke-dasharray="4 4"/><text x="${X(0)+6}" y="${T+12}" font-size="12" fill="var(--muted)">60초 → 0초</text>`;
+  const path=a=>a.map((v,i)=>`${i?'L':'M'}${X(-6+i*0.25).toFixed(1)},${Y(v).toFixed(1)}`).join('');
+  s+=`<path d="${path(fade)}" fill="none" stroke="var(--muted)" stroke-width="2"/><path d="${path(cont)}" fill="none" stroke="var(--accent)" stroke-width="3"/>`;
+  s+=`<circle cx="${X(-6+23*0.25)}" cy="${Y(-83)}" r="4" fill="var(--muted)"/><text x="${X(-6+23*0.25)-8}" y="${Y(-83)+4}" text-anchor="end" font-size="12" fill="var(--muted)" font-family="IBM Plex Mono, monospace">−83dB</text>`;
+  svg.innerHTML=s;
+})();
+</script>
+
+</body>
+</html>
